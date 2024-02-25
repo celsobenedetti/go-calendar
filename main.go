@@ -23,29 +23,33 @@ func main() {
 
 	events := cal.today()
 	if len(events.Items) == 0 {
-		fmt.Println("No upcoming events found.")
+		fmt.Print("No upcoming events found.")
 		os.Exit(0)
 	}
 
-	var sb strings.Builder
+	fmt.Print(toMarkdownList(events))
+}
 
+//   - `12:00` My Event Title
+//     > Description of event, if any
+func toMarkdownList(events *calendar.Events) string {
+	var out strings.Builder
 	for _, item := range events.Items {
 		date, err := time.Parse(time.RFC3339, item.Start.DateTime)
 		if err != nil {
 			date, err = time.Parse(time.RFC3339, item.Start.Date)
 			if err != nil {
-				log.Fatalf("failed to parse date", err)
+				log.Fatalf("failed to parse date %v", err)
 			}
 		}
 
-		sb.WriteString(fmt.Sprintf("- `%d:%.2d` %v", date.Hour(), date.Minute(), item.Summary))
+		out.WriteString(fmt.Sprintf("- `%d:%.2d` %v", date.Hour(), date.Minute(), item.Summary))
 		if len(item.Description) > 0 {
-			sb.WriteString(" - " + item.Description)
+			out.WriteString("\n\t> " + item.Description)
 		}
-		sb.WriteString("\n")
+		out.WriteString("\n")
 	}
-
-	fmt.Println(sb.String())
+	return out.String()
 }
 
 func newCalendar(ctx context.Context) Calendar {
