@@ -15,15 +15,16 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
-const callToAction = "Go to the following link in your browser then type the " +
-	"authorization code: \n%v\n"
+const (
+	credsFile = "credentials.json"
+	tokFile   = "token.json"
+)
 
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
-	tokFile := "token.json"
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
 		tok = getTokenFromWeb(config)
@@ -95,7 +96,7 @@ func saveToken(path string, token *oauth2.Token) {
 
 // If modifying these scopes, delete your previously saved token.json.
 func readConfig() *oauth2.Config {
-	b, err := os.ReadFile("credentials.json")
+	b, err := os.ReadFile(credsFile)
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}

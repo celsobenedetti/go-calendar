@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -14,23 +13,21 @@ import (
 func toMarkdownList(events *calendar.Events) string {
 	var out strings.Builder
 	for _, item := range events.Items {
-		writeListItem(item, out)
+		hour := getHour(item)
+		out.WriteString(fmt.Sprintf("- `%d:%.2d` %v", hour.Hour(), hour.Minute(), item.Summary))
+
+		if len(item.Description) > 0 {
+			out.WriteString("\n\t> " + item.Description)
+		}
+		out.WriteString("\n")
 	}
 	return out.String()
 }
 
-func writeListItem(item *calendar.Event, out strings.Builder) {
+func getHour(item *calendar.Event) time.Time {
 	date, err := time.Parse(time.RFC3339, item.Start.DateTime)
 	if err != nil {
-		date, err = time.Parse(time.RFC3339, item.Start.Date)
-		if err != nil {
-			log.Fatalf("failed to parse date %v", err)
-		}
+		date, _ = time.Parse(time.RFC3339, item.Start.Date)
 	}
-
-	out.WriteString(fmt.Sprintf("- `%d:%.2d` %v", date.Hour(), date.Minute(), item.Summary))
-	if len(item.Description) > 0 {
-		out.WriteString("\n\t> " + item.Description)
-	}
-	out.WriteString("\n")
+	return date
 }
