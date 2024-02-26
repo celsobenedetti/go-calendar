@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
+	"github.com/spf13/viper"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
 )
@@ -17,14 +17,13 @@ type Calendar struct {
 	calIds  []string
 }
 
-var tomorrowFlag = flag.Bool("tom", false, "fetch tomorrow's events")
-
 func main() {
 	ctx := context.Background()
 	cal := newCalendar(ctx)
 
+	tomorrowFlag := viper.GetBool("tomorrow")
 	var events *calendar.Events
-	if *tomorrowFlag {
+	if tomorrowFlag {
 		events = cal.tomorrow()
 	} else {
 		events = cal.today()
@@ -47,12 +46,14 @@ func newCalendar(ctx context.Context) Calendar {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
 
+	calendarIds := viper.GetStringSlice("calendarIds")
+	if len(calendarIds) == 0 {
+		log.Fatalf("No calendarIds specified in config")
+	}
+
 	cal := Calendar{
 		service: srv,
-		calIds: []string{
-			"primary",
-			"celso.benedetti@ocelotbot.com",
-		},
+		calIds:  calendarIds,
 	}
 	return cal
 }
@@ -94,5 +95,22 @@ func (c Calendar) tomorrow() *calendar.Events {
 }
 
 func init() {
-	flag.Parse()
+	viper.SetDefault("tomorrow", "false")
+	viper.SetDefault("calendarIds", []string{"primary"})
+
+	configFile := "config"
+	configType := "yaml"
+	configPath := "$HOME/.gocal"
+
+	viper.SetConfigName(configFile) // name of config file (without extension)
+	viper.SetConfigType(configType) // REQUIRED if the config file does not have the extension in the name
+	viper.AddConfigPath(configPath) // call multiple times to add many search paths
+	err := viper.ReadInConfig()     // Find and read the config file
+	if err != nil {                 // Handle errors reading the config file
+		log.Printf("no config file found, creating default at: %s/%s.%s", configPath, configFile, configType)
+		err := viper.SafeWriteConfig()
+		if err != nil {
+			log.Fatalln("failed to write default config file", err)
+		}
+	}
 }
