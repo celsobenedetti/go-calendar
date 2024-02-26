@@ -17,15 +17,14 @@ type Calendar struct {
 	calIds  []string
 }
 
-var tomorrow = flag.Bool("tom", false, "fetch tomorrow's events")
+var tomorrowFlag = flag.Bool("tom", false, "fetch tomorrow's events")
 
 func main() {
 	ctx := context.Background()
 	cal := newCalendar(ctx)
 
 	var events *calendar.Events
-
-	if *tomorrow {
+	if *tomorrowFlag {
 		events = cal.tomorrow()
 	} else {
 		events = cal.today()
@@ -51,7 +50,7 @@ func newCalendar(ctx context.Context) Calendar {
 	cal := Calendar{
 		service: srv,
 		calIds: []string{
-			"celsobenedetti2@gmail.com",
+			"primary",
 			"celso.benedetti@ocelotbot.com",
 		},
 	}
@@ -89,9 +88,9 @@ func (c Calendar) today() *calendar.Events {
 
 func (c Calendar) tomorrow() *calendar.Events {
 	now := time.Now()
-	tom := now.Add(24 * time.Hour)
-	tomMidnight := time.Date(tom.Year(), tom.Month(), tom.Day()+2, 0, 0, 0, 0, tom.Location())
-	return c.getEvents(tom, tomMidnight)
+	midnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	tomMidnight := time.Date(midnight.Year(), midnight.Month(), midnight.Day()+1, 0, 0, 0, 0, midnight.Location())
+	return c.getEvents(midnight, tomMidnight)
 }
 
 func init() {

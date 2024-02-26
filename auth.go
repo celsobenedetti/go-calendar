@@ -63,10 +63,10 @@ func serveRandomPort(authCodeCh chan string) int {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	go http.Serve(listener, http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		authCodeCh <- r.URL.Query().Get("code")
-	}))
+	})
+	go http.Serve(listener, handler)
 
 	return listener.Addr().(*net.TCPAddr).Port
 }
