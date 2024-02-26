@@ -5,13 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/exec"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 )
+
+const callToAction = "Go to the following link in your browser then type the " +
+	"authorization code: \n%v\n"
 
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
@@ -19,7 +24,6 @@ func getClient(config *oauth2.Config) *http.Client {
 	// created automatically when the authorization flow completes for the first
 	// time.
 	tokFile := "token.json"
-	config.RedirectURL = "http://localhost:8080"
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
 		tok = getTokenFromWeb(config)
@@ -30,29 +34,40 @@ func getClient(config *oauth2.Config) *http.Client {
 
 // Request a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
-	ch := make(chan string)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		if code != "" {
-			ch <- code
-			fmt.Println("Auth success: ", code)
-		} else {
-			http.Error(w, "missing auth code", http.StatusBadRequest)
-		}
-	})
-	go http.ListenAndServe(":8080", nil)
+	authCodeCh := make(chan string)
 
+	port := serveRandomPort(authCodeCh)
+	config.RedirectURL = fmt.Sprintf("http://localhost:%d", port)
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%v\n", authURL)
 
-	authCode := <-ch
+	go openBrowser(authURL)
+	code := <-authCodeCh
 
-	tok, err := config.Exchange(context.Background(), authCode)
+	tok, err := config.Exchange(context.Background(), code)
 	if err != nil {
 		log.Fatalf("Unable to retrieve token from web: %v", err)
 	}
 	return tok
+}
+
+func openBrowser(url string) {
+	err := exec.Command("xdg-open", url).Start()
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func serveRandomPort(authCodeCh chan string) int {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go http.Serve(listener, http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		authCodeCh <- r.URL.Query().Get("code")
+	}))
+
+	return listener.Addr().(*net.TCPAddr).Port
 }
 
 // Retrieves a token from a local file.
