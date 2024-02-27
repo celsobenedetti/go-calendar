@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
@@ -21,8 +22,8 @@ func main() {
 	ctx := context.Background()
 	cal := newCalendar(ctx)
 
-	tomorrowFlag := viper.GetBool("tomorrow")
 	var events *calendar.Events
+	tomorrowFlag := viper.GetBool("tomorrow")
 	if tomorrowFlag {
 		events = cal.tomorrow()
 	} else {
@@ -95,7 +96,10 @@ func (c Calendar) tomorrow() *calendar.Events {
 }
 
 func init() {
-	viper.SetDefault("tomorrow", "false")
+	pflag.BoolP("tomorrow", "t", false, "should fetch  tomorrow's events")
+	pflag.Parse()
+	viper.BindPFlags(pflag.CommandLine)
+
 	viper.SetDefault("calendarIds", []string{"primary"})
 
 	configFile := "config"
