@@ -14,9 +14,14 @@ func toMarkdownList(events *calendar.Events) string {
 	var out strings.Builder
 	for _, item := range events.Items {
 		hour := getHour(item)
+
 		out.WriteString(fmt.Sprintf("- [ ] `%d:%.2d` %v", hour.Hour(), hour.Minute(), item.Summary))
 
 		if len(item.Description) > 0 {
+			if strings.Contains(item.Description, "Fellow") {
+				lines := strings.Split(item.Description, "\n")
+				item.Description = lines[0]
+			}
 			out.WriteString("\n\t> " + item.Description)
 		}
 		out.WriteString("\n")
