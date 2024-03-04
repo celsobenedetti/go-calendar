@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	credsFile = "credentials.json"
-	tokFile   = "token.json"
+	// TODO: configure this with viper
+	credsFile = "/home/celso/.gocal/credentials.json"
+	tokFile   = "/home/celso/.gocal/token.json"
 )
 
 // Retrieve a token, saves the token, then returns the generated client.
@@ -92,6 +93,14 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
+}
+
+// Saves a token to a file path.
+func removeToken(path string) {
+	err := os.Remove(path)
+	if err != nil {
+		log.Fatalf("Unable to remove oauth token file %s: %v", path, err)
+	}
 }
 
 // If modifying these scopes, delete your previously saved token.json.

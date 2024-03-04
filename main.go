@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
 )
@@ -16,6 +18,7 @@ import (
 type Calendar struct {
 	service *calendar.Service
 	calIds  []string
+	config  *oauth2.Config
 }
 
 func main() {
@@ -55,6 +58,7 @@ func newCalendar(ctx context.Context) Calendar {
 	cal := Calendar{
 		service: srv,
 		calIds:  calendarIds,
+		config:  config,
 	}
 	return cal
 }
@@ -72,7 +76,12 @@ func (c Calendar) getEvents(since, upto time.Time) *calendar.Events {
 			MaxResults(10).
 			OrderBy("startTime").
 			Do()
-		if err != nil {
+		retrievErr := &oauth2.RetrieveError{}
+		if errors.As(err, &retrievErr) {
+			removeToken(tokFile)
+			getTokenFromWeb(c.config)
+			return c.getEvents(since, upto)
+		} else if err != nil {
 			log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 		}
 
