@@ -8,11 +8,20 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
+var exclude = []string{
+	"Home",
+}
+
 //   - `12:00` My Event Title
 //     > Description of event, if any
 func toMarkdownList(events *calendar.Events) string {
 	var out strings.Builder
+
 	for _, item := range events.Items {
+		if shouldExclude(item.Summary) {
+			continue
+		}
+
 		hour := getHour(item)
 
 		out.WriteString(fmt.Sprintf("- [ ] `%d:%.2d` %v", hour.Hour(), hour.Minute(), item.Summary))
@@ -35,4 +44,13 @@ func getHour(item *calendar.Event) time.Time {
 		date, _ = time.Parse(time.RFC3339, item.Start.Date)
 	}
 	return date
+}
+
+func shouldExclude(event string) bool {
+	for _, word := range exclude {
+		if strings.Contains(event, word) {
+			return true
+		}
+	}
+	return false
 }
