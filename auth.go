@@ -97,11 +97,7 @@ func saveToken(path string, token *oauth2.Token) {
 
 // Remove a token to a file path.
 func removeToken(path string) {
-	err := os.Remove(path)
-	// TODO: this is not fatal bruh
-	if err != nil {
-		log.Fatalf("Unable to remove oauth token file %s: %v", path, err)
-	}
+	os.Remove(path)
 }
 
 // If modifying these scopes, delete your previously saved token.json.
